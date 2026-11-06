@@ -691,7 +691,7 @@ BEGIN
   ASSERT isnull(c), 'empty isnull';
   ASSERT first_key(c) IS NULL, 'empty first_key';
   ASSERT last_key(c) IS NULL, 'empty last_key';
-  ASSERT value_type(c) IS NULL, 'empty value_type';
+  ASSERT value_type(c) = 'text'::regtype, 'empty value_type';
 
   -- sort on empty should not error
   c := sort(c);
@@ -1359,7 +1359,7 @@ BEGIN
   ASSERT isnull(ic), 'ic empty isnull';
   ASSERT first_key(ic) IS NULL, 'ic empty first_key';
   ASSERT last_key(ic) IS NULL, 'ic empty last_key';
-  ASSERT value_type(ic) IS NULL, 'ic empty value_type';
+  ASSERT value_type(ic) = 'text'::regtype, 'ic empty value_type';
 
   ic := sort(ic);
   ASSERT count(ic) = 0, 'ic empty sort count';

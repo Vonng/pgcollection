@@ -232,6 +232,7 @@ typedef enum
 	COLL_PARSE_EXPECT_ENTRIES,
 	COLL_PARSE_EXPECT_ENTRIES_OBJECT,
 	COLL_PARSE_EXPECT_EOF,
+	COLL_PARSE_EMPTY,			/* complete bare {}, with no value type yet */
 }			CollectionParseSemanticState;
 
 typedef struct CollectionParseState

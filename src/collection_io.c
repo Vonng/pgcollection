@@ -82,7 +82,6 @@ collection_out(PG_FUNCTION_ARGS)
 	collection *cur;
 	Oid			outfuncoid;
 	bool		typisvarlena;
-	int			count;
 	char	   *key;
 	char	   *value;
 	char	   *value_type;
@@ -93,9 +92,12 @@ collection_out(PG_FUNCTION_ARGS)
 
 	colhdr = fetch_collection(fcinfo, 0);
 
-	count = HASH_COUNT(colhdr->head);
-	if (count == 0)
+	/* Typed empty values need the envelope; only an untyped empty is {}. */
+	if (colhdr->value_type == InvalidOid && colhdr->head == NULL)
+	{
+		pgstat_report_wait_end();
 		PG_RETURN_CSTRING("{}");
+	}
 
 	getTypeOutputInfo(colhdr->value_type, &outfuncoid, &typisvarlena);
 	value_type = format_type_extended(colhdr->value_type, -1, FORMAT_TYPE_FORCE_QUALIFY);

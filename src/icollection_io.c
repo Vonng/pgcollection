@@ -22,6 +22,7 @@
 #include "utils/builtins.h"
 #include "utils/expandeddatum.h"
 #include "utils/lsyscache.h"
+#include "utils/json.h"
 
 #include "collection.h"
 
@@ -64,7 +65,20 @@ icollection_out(PG_FUNCTION_ARGS)
 
 	count = HASH_COUNT(hdr->head);
 	if (count == 0)
-		PG_RETURN_CSTRING("{}");
+	{
+		char	   *value_type;
+
+		/* Only an untyped empty value can be represented by {}. */
+		if (hdr->value_type == InvalidOid)
+			PG_RETURN_CSTRING("{}");
+
+		value_type = format_type_extended(hdr->value_type, -1, FORMAT_TYPE_FORCE_QUALIFY);
+		initStringInfo(&buf);
+		appendStringInfoString(&buf, "{\"value_type\": ");
+		escape_json(&buf, value_type);
+		appendStringInfoString(&buf, ", \"entries\": {}}");
+		PG_RETURN_CSTRING(buf.data);
+	}
 
 	initStringInfo(&buf);
 	appendStringInfoString(&buf, "{");

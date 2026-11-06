@@ -339,6 +339,7 @@ construct_empty_icollection(MemoryContext parentcontext)
 	EOH_init_header(&hdr->hdr, &icollection_methods, objcxt);
 	hdr->collection_magic = COLLECTION_MAGIC;
 	hdr->value_type = InvalidOid;
+	hdr->value_type_len = 0;
 	hdr->value_byval = false;
 	hdr->flat_size = 0;
 

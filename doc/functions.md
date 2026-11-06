@@ -34,7 +34,7 @@ Both `collection` (text-keyed) and `icollection` (integer-keyed) support the sam
 | `values_to_table(collection, anyelement)` | `SETOF anyelement` | Returns all values as anyelement in a result set |
 | `to_table(collection)` | `TABLE(text, text)` | Returns all keys and values as text in a result set |
 | `to_table(collection, anyelement)` | `TABLE(text, anyelement)` | Returns all keys and values as anyelement in a result set |
-| `value_type(collection)` | `regtype` | Returns the data type of the elements within the collection |
+| `value_type(collection)` | `regtype` | Returns the known element type, including for empty collections; NULL if untyped |
 
 ## icollection Functions
 
@@ -68,7 +68,7 @@ Both `collection` (text-keyed) and `icollection` (integer-keyed) support the sam
 | `values_to_table(icollection, anyelement)` | `SETOF anyelement` | Returns all values as anyelement in a result set |
 | `to_table(icollection)` | `TABLE(bigint, text)` | Returns all keys and values as text in a result set |
 | `to_table(icollection, anyelement)` | `TABLE(bigint, anyelement)` | Returns all keys and values as anyelement in a result set |
-| `value_type(icollection)` | `regtype` | Returns the data type of the elements within the icollection |
+| `value_type(icollection)` | `regtype` | Returns the known element type, including for empty icollections; NULL if untyped |
 
 ## Array Interoperability
 

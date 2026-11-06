@@ -834,6 +834,10 @@ icollection_from_array(PG_FUNCTION_ARGS)
 
 	hdr = construct_empty_icollection(CurrentMemoryContext);
 
+	hdr->value_type = elemtype;
+	hdr->value_type_len = elemlen;
+	hdr->value_byval = elembyval;
+
 	if (nelems == 0)
 	{
 		pgstat_report_wait_end();
@@ -841,10 +845,6 @@ icollection_from_array(PG_FUNCTION_ARGS)
 	}
 
 	oldcxt = MemoryContextSwitchTo(hdr->hdr.eoh_context);
-
-	hdr->value_type = elemtype;
-	hdr->value_type_len = elemlen;
-	hdr->value_byval = elembyval;
 
 	for (i = 0; i < nelems; i++)
 	{
