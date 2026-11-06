@@ -60,6 +60,13 @@ parse_icollection(char *json)
 	if (json_error != JSON_SUCCESS)
 		elog(ERROR, "Invalid format");
 
+	/* {} has no value type until the first add or explicit type cast. */
+	if (parse.state == COLL_PARSE_EMPTY)
+	{
+		MemoryContextSwitchTo(oldcxt);
+		return icolhdr;
+	}
+
 	if (parse.typname)
 	{
 		Oid			typid;
@@ -93,11 +100,10 @@ parse_icollection(char *json)
 		item->key = key;
 		item->isnull = isnull;
 
-		if (!isnull)
-		{
-			value = OidFunctionCall1(typInput, CStringGetDatum(vstr));
-			item->value = datumCopy(value, icolhdr->value_byval, icolhdr->value_type_len);
-		}
+		/* Even NULL input must run non-strict input functions (domains). */
+		value = OidInputFunctionCall(typInput, isnull ? NULL : vstr, typIOParam, -1);
+		item->value = isnull ? (Datum) 0 :
+			datumCopy(value, icolhdr->value_byval, icolhdr->value_type_len);
 
 		ICOLLECTION_HASH_REPLACE(icolhdr->head, key, item, replaced_item);
 		if (replaced_item)
@@ -162,6 +168,10 @@ json_icollection_scalar(void *state, char *token, JsonTokenType tokentype)
 	switch (parse->state)
 	{
 		case COLL_PARSE_EXPECT_VALUE_TYPE:
+			if (tokentype != JSON_TOKEN_STRING)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+						 errmsg("value_type must be a JSON string")));
 			parse->typname = pstrdup(token);
 			parse->state = COLL_PARSE_EXPECT_TOPLEVEL_FIELD;
 			break;

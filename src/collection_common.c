@@ -153,6 +153,16 @@ collection_parse_object_end(void *state)
 			parse->state = COLL_PARSE_EXPECT_TOPLEVEL_END;
 			break;
 
+		case COLL_PARSE_EXPECT_TOPLEVEL_FIELD:
+			/* Preserve the untyped empty value represented by a bare {}. */
+			if (parse->typname == NULL && parse->keys == NIL)
+			{
+				parse->state = COLL_PARSE_EMPTY;
+				break;
+			}
+			elog(ERROR, "unexpected object end");
+			break;
+
 		default:
 			elog(ERROR, "unexpected object end");
 			break;
@@ -513,7 +523,7 @@ collection_prev_common(CollectionHeaderCommon * hdr)
 Datum
 collection_value_type_common(CollectionHeaderCommon * hdr)
 {
-	if (hdr->head == NULL || hdr->value_type == InvalidOid)
+	if (hdr->value_type == InvalidOid)
 		return (Datum) 0;		/* caller returns NULL */
 
 	return ObjectIdGetDatum(hdr->value_type);

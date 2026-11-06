@@ -147,14 +147,16 @@ expand_collection(Datum collectiondatum, MemoryContext parentcontext)
 			fc = (FlatCollectionType *) (DatumGetPointer(collectiondatum));
 
 		/* Validate that the type exists */
-		lookup_type_cache(fc->value_type, 0);
+		if (fc->value_type != InvalidOid)
+			lookup_type_cache(fc->value_type, 0);
 
 		new_colhdr = construct_empty_collection(parentcontext);
 
 		oldcxt = MemoryContextSwitchTo(new_colhdr->hdr.eoh_context);
 
 		new_colhdr->value_type = fc->value_type;
-		get_typlenbyval(fc->value_type, &new_colhdr->value_type_len, &new_colhdr->value_byval);
+		if (fc->value_type != InvalidOid)
+			get_typlenbyval(fc->value_type, &new_colhdr->value_type_len, &new_colhdr->value_byval);
 
 		while (i < fc->num_entries)
 		{
@@ -412,6 +414,7 @@ construct_empty_collection(MemoryContext parentcontext)
 	EOH_init_header(&colhdr->hdr, &collection_expand_methods, objcxt);
 	colhdr->collection_magic = COLLECTION_MAGIC;
 	colhdr->value_type = InvalidOid;
+	colhdr->value_type_len = 0;
 	colhdr->value_byval = false;
 	colhdr->flat_size = 0;
 

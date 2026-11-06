@@ -69,13 +69,19 @@ NOTICE:  collection sorted first key: a
 NOTICE:  icollection sorted first key: 1
 -- Test 4: Table functions for both types
 SELECT 'collection keys' as type, * FROM keys_to_table(add(add('{}'::collection, 'a', 'val1'::text), 'b', 'val2'::text)) ORDER BY 1;
-ERROR:  unexpected object end
-LINE 1: ...ction keys' as type, * FROM keys_to_table(add(add('{}'::coll...
-                                                             ^
+      type       | keys_to_table 
+-----------------+---------------
+ collection keys | a
+ collection keys | b
+(2 rows)
+
 SELECT 'icollection keys' as type, * FROM keys_to_table(add(add('{}'::icollection, 1, 'val1'::text), 2, 'val2'::text)) ORDER BY 1;
-ERROR:  unexpected object end
-LINE 1: ...ction keys' as type, * FROM keys_to_table(add(add('{}'::icol...
-                                                             ^
+       type       | keys_to_table 
+------------------+---------------
+ icollection keys |             1
+ icollection keys |             2
+(2 rows)
+
 -- Test 5: NULL handling in both types
 DO $$
 DECLARE

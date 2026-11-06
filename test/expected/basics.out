@@ -817,7 +817,7 @@ BEGIN
   ASSERT isnull(c), 'empty isnull';
   ASSERT first_key(c) IS NULL, 'empty first_key';
   ASSERT last_key(c) IS NULL, 'empty last_key';
-  ASSERT value_type(c) IS NULL, 'empty value_type';
+  ASSERT value_type(c) = 'text'::regtype, 'empty value_type';
 
   -- sort on empty should not error
   c := sort(c);
@@ -953,9 +953,11 @@ NOTICE:  count: 4
 NOTICE:  current key: 1
 -- Test empty icollection creation
 SELECT '{}'::icollection;
-ERROR:  unexpected object end
-LINE 1: SELECT '{}'::icollection;
-               ^
+ icollection 
+-------------
+ {}
+(1 row)
+
 -- Test that icollection type exists and is distinct
 SELECT typname FROM pg_type WHERE typname = 'icollection';
    typname   
@@ -965,102 +967,142 @@ SELECT typname FROM pg_type WHERE typname = 'icollection';
 
 -- Test icollection_add function
 SELECT add('{}'::icollection, 1, 'hello'::text);
-ERROR:  unexpected object end
-LINE 1: SELECT add('{}'::icollection, 1, 'hello'::text);
-                   ^
+                             add                              
+--------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "hello"}}
+(1 row)
+
 SELECT add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 1, 'hello'::text), 2, 'wor...
-                       ^
+                                    add                                     
+----------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "hello", "2": "world"}}
+(1 row)
+
 -- Test with different value types
 SELECT add(add('{}'::icollection, 10, 42), 20, 100);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 10, 42), 20, 100);
-                       ^
+                               add                               
+-----------------------------------------------------------------
+ {"value_type": "integer", "entries": {"10": "42", "20": "100"}}
+(1 row)
+
 SELECT add(add('{}'::icollection, 1, '2024-01-01'::date), 2, '2024-12-31'::date);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 1, '2024-01-01'::date), 2,...
-                       ^
+                                         add                                          
+--------------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.date", "entries": {"1": "01-01-2024", "2": "12-31-2024"}}
+(1 row)
+
 SELECT add(add('{}'::icollection, 1, 1.5::float8), 2, 2.5::float8);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 1, 1.5::float8), 2, 2.5::f...
-                       ^
+                                   add                                   
+-------------------------------------------------------------------------
+ {"value_type": "double precision", "entries": {"1": "1.5", "2": "2.5"}}
+(1 row)
+
 -- Test with NULL values
 SELECT add(add('{}'::icollection, 1, 'value'::text), 2, NULL::text);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 1, 'value'::text), 2, NULL...
-                       ^
+                                   add                                   
+-------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "value", "2": null}}
+(1 row)
+
 SELECT add(add('{}'::icollection, 1, '1999-12-31'::date), 2, null::date);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 1, '1999-12-31'::date), 2,...
-                       ^
+                                     add                                      
+------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.date", "entries": {"1": "12-31-1999", "2": null}}
+(1 row)
+
 -- Test key replacement
 SELECT add(add(add('{}'::icollection, 1, 'first'::text), 1, 'second'::text), 2, 'third'::text);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add(add('{}'::icollection, 1, 'first'::text), 1, ...
-                           ^
+                                     add                                     
+-----------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "second", "2": "third"}}
+(1 row)
+
 -- Test find function
 SELECT find(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text), 1);
-ERROR:  unexpected object end
-LINE 1: SELECT find(add(add('{}'::icollection, 1, 'hello'::text), 2,...
-                            ^
+ find  
+-------
+ hello
+(1 row)
+
 SELECT find(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text), 2);
-ERROR:  unexpected object end
-LINE 1: SELECT find(add(add('{}'::icollection, 1, 'hello'::text), 2,...
-                            ^
+ find  
+-------
+ world
+(1 row)
+
 -- Test find with NULL value
 SELECT find(add('{}'::icollection, 1, NULL::text), 1);
-ERROR:  unexpected object end
-LINE 1: SELECT find(add('{}'::icollection, 1, NULL::text), 1);
-                        ^
+ find 
+------
+ 
+(1 row)
+
 -- Test find with non-existent key (should error)
 SELECT find('{}'::icollection, 999);
-ERROR:  unexpected object end
-LINE 1: SELECT find('{}'::icollection, 999);
-                    ^
+ERROR:  key "999" not found
 -- Test exist function
 SELECT exist(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text), 1);
-ERROR:  unexpected object end
-LINE 1: SELECT exist(add(add('{}'::icollection, 1, 'hello'::text), 2...
-                             ^
+ exist 
+-------
+ t
+(1 row)
+
 SELECT exist(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text), 999);
-ERROR:  unexpected object end
-LINE 1: SELECT exist(add(add('{}'::icollection, 1, 'hello'::text), 2...
-                             ^
+ exist 
+-------
+ f
+(1 row)
+
 SELECT exist(add('{}'::icollection, 1, NULL::text), 1);
-ERROR:  unexpected object end
-LINE 1: SELECT exist(add('{}'::icollection, 1, NULL::text), 1);
-                         ^
+ exist 
+-------
+ t
+(1 row)
+
 SELECT exist('{}'::icollection, 1);
-ERROR:  unexpected object end
-LINE 1: SELECT exist('{}'::icollection, 1);
-                     ^
+ exist 
+-------
+ f
+(1 row)
+
 -- Test count function
 SELECT count('{}'::icollection);
-ERROR:  unexpected object end
-LINE 1: SELECT count('{}'::icollection);
-                     ^
+ count 
+-------
+     0
+(1 row)
+
 SELECT count(add('{}'::icollection, 1, 'hello'::text));
-ERROR:  unexpected object end
-LINE 1: SELECT count(add('{}'::icollection, 1, 'hello'::text));
-                         ^
+ count 
+-------
+     1
+(1 row)
+
 SELECT count(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text));
-ERROR:  unexpected object end
-LINE 1: SELECT count(add(add('{}'::icollection, 1, 'hello'::text), 2...
-                             ^
+ count 
+-------
+     2
+(1 row)
+
 -- Test delete function
 SELECT delete(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text), 1);
-ERROR:  unexpected object end
-LINE 1: SELECT delete(add(add('{}'::icollection, 1, 'hello'::text), ...
-                              ^
+                            delete                            
+--------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"2": "world"}}
+(1 row)
+
 SELECT count(delete(add(add('{}'::icollection, 1, 'hello'::text), 2, 'world'::text), 1));
-ERROR:  unexpected object end
-LINE 1: SELECT count(delete(add(add('{}'::icollection, 1, 'hello'::t...
-                                    ^
+ count 
+-------
+     1
+(1 row)
+
 SELECT delete('{}'::icollection, 999);  -- delete non-existent key
-ERROR:  unexpected object end
-LINE 1: SELECT delete('{}'::icollection, 999);
-                      ^
+ delete 
+--------
+ {}
+(1 row)
+
 -- Test delete with pass-by-value types (int4) - regression test for bug fixed in commit 16eecda
 DO $$
 DECLARE
@@ -1095,11 +1137,9 @@ BEGIN
         ic := next(ic);
     END LOOP;
 END $$;
-ERROR:  unexpected object end
-LINE 1: ic := add(add(add('{}'::icollection, 1, 'first'::text), 2, '...
-                          ^
-QUERY:  ic := add(add(add('{}'::icollection, 1, 'first'::text), 2, 'second'::text), 3, 'third'::text)
-CONTEXT:  PL/pgSQL function inline_code_block line 5 at assignment
+NOTICE:  key: 1, value: first
+NOTICE:  key: 2, value: second
+NOTICE:  key: 3, value: third
 -- Test last and prev
 DO $$
 DECLARE
@@ -1113,11 +1153,9 @@ BEGIN
         ic := prev(ic);
     END LOOP;
 END $$;
-ERROR:  unexpected object end
-LINE 1: ic := add(add(add('{}'::icollection, 1, 'first'::text), 2, '...
-                          ^
-QUERY:  ic := add(add(add('{}'::icollection, 1, 'first'::text), 2, 'second'::text), 3, 'third'::text)
-CONTEXT:  PL/pgSQL function inline_code_block line 5 at assignment
+NOTICE:  key: 3, value: third
+NOTICE:  key: 2, value: second
+NOTICE:  key: 1, value: first
 -- Test iterator on empty collection
 DO $$
 DECLARE
@@ -1130,20 +1168,20 @@ BEGIN
         RAISE NOTICE 'Empty collection iterator is null';
     END IF;
 END $$;
-ERROR:  unexpected object end
-LINE 1: ic := '{}'::icollection
-              ^
-QUERY:  ic := '{}'::icollection
-CONTEXT:  PL/pgSQL function inline_code_block line 5 at assignment
+NOTICE:  Empty collection iterator is null
 -- Test sort function
 SELECT sort(add(add(add('{}'::icollection, 3, 'third'::text), 1, 'first'::text), 2, 'second'::text));
-ERROR:  unexpected object end
-LINE 1: SELECT sort(add(add(add('{}'::icollection, 3, 'third'::text)...
-                                ^
+                                           sort                                            
+-------------------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "first", "2": "second", "3": "third"}}
+(1 row)
+
 SELECT sort(add(add(add('{}'::icollection, 100, 'z'::text), -50, 'a'::text), 0, 'm'::text));
-ERROR:  unexpected object end
-LINE 1: SELECT sort(add(add(add('{}'::icollection, 100, 'z'::text), ...
-                                ^
+                                       sort                                       
+----------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"-50": "a", "0": "m", "100": "z"}}
+(1 row)
+
 -- Test copy function
 DO $$
 DECLARE
@@ -1157,93 +1195,121 @@ BEGIN
     RAISE NOTICE 'ic1 count: %', count(ic1);
     RAISE NOTICE 'ic2 count: %', count(ic2);
 END $$;
-ERROR:  unexpected object end
-LINE 1: ic1 := add(add('{}'::icollection, 1, 'original'::text), 2, '...
-                       ^
-QUERY:  ic1 := add(add('{}'::icollection, 1, 'original'::text), 2, 'data'::text)
-CONTEXT:  PL/pgSQL function inline_code_block line 6 at assignment
+NOTICE:  ic1 count: 2
+NOTICE:  ic2 count: 3
 -- Test copy of empty collection
 SELECT copy('{}'::icollection);
-ERROR:  unexpected object end
-LINE 1: SELECT copy('{}'::icollection);
-                    ^
+ copy 
+------
+ 
+(1 row)
+
 -- Test value_type function
 SELECT value_type(add('{}'::icollection, 1, 'text'::text));
-ERROR:  unexpected object end
-LINE 1: SELECT value_type(add('{}'::icollection, 1, 'text'::text));
-                              ^
+ value_type 
+------------
+ text
+(1 row)
+
 SELECT value_type(add('{}'::icollection, 1, 42::int4));
-ERROR:  unexpected object end
-LINE 1: SELECT value_type(add('{}'::icollection, 1, 42::int4));
-                              ^
+ value_type 
+------------
+ integer
+(1 row)
+
 SELECT value_type(add('{}'::icollection, 1, '2024-01-01'::date));
-ERROR:  unexpected object end
-LINE 1: SELECT value_type(add('{}'::icollection, 1, '2024-01-01'::da...
-                              ^
+ value_type 
+------------
+ date
+(1 row)
+
 -- Test keys_to_table function
 SELECT * FROM keys_to_table(add(add(add('{}'::icollection, 3, 'c'::text), 1, 'a'::text), 2, 'b'::text)) ORDER BY 1;
-ERROR:  unexpected object end
-LINE 1: SELECT * FROM keys_to_table(add(add(add('{}'::icollection, 3...
-                                                ^
+ keys_to_table 
+---------------
+             1
+             2
+             3
+(3 rows)
+
 SELECT * FROM keys_to_table('{}'::icollection);  -- empty collection
-ERROR:  unexpected object end
-LINE 1: SELECT * FROM keys_to_table('{}'::icollection);
-                                    ^
+ keys_to_table 
+---------------
+(0 rows)
+
 -- Test values_to_table function
 SELECT * FROM values_to_table(sort(add(add(add('{}'::icollection, 3, 'third'::text), 1, 'first'::text), 2, 'second'::text)));
-ERROR:  unexpected object end
-LINE 1: SELECT * FROM values_to_table(sort(add(add(add('{}'::icollec...
-                                                       ^
+ values_to_table 
+-----------------
+ first
+ second
+ third
+(3 rows)
+
 SELECT * FROM values_to_table(add(add('{}'::icollection, 1, 'value'::text), 2, NULL::text));  -- with NULL
-ERROR:  unexpected object end
-LINE 1: SELECT * FROM values_to_table(add(add('{}'::icollection, 1, ...
-                                              ^
+ values_to_table 
+-----------------
+ value
+ 
+(2 rows)
+
 -- Test to_table function
 SELECT * FROM to_table(add(add(add('{}'::icollection, 10, 'ten'::text), 20, 'twenty'::text), 30, 'thirty'::text)) ORDER BY key;
-ERROR:  unexpected object end
-LINE 1: SELECT * FROM to_table(add(add(add('{}'::icollection, 10, 't...
-                                           ^
+ key | value  
+-----+--------
+  10 | ten
+  20 | twenty
+  30 | thirty
+(3 rows)
+
 SELECT * FROM to_table('{}'::icollection);  -- empty collection
-ERROR:  unexpected object end
-LINE 1: SELECT * FROM to_table('{}'::icollection);
-                               ^
+ key | value 
+-----+-------
+(0 rows)
+
 -- Test negative keys
 SELECT add(add(add('{}'::icollection, -1, 'negative'::text), 0, 'zero'::text), 1, 'positive'::text);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add(add('{}'::icollection, -1, 'negative'::text),...
-                           ^
+                                              add                                               
+------------------------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"-1": "negative", "0": "zero", "1": "positive"}}
+(1 row)
+
 SELECT sort(add(add(add('{}'::icollection, -1, 'negative'::text), 0, 'zero'::text), 1, 'positive'::text));
-ERROR:  unexpected object end
-LINE 1: SELECT sort(add(add(add('{}'::icollection, -1, 'negative'::t...
-                                ^
+                                              sort                                              
+------------------------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"-1": "negative", "0": "zero", "1": "positive"}}
+(1 row)
+
 -- Test large keys
 SELECT add(add('{}'::icollection, 9223372036854775807, 'max'::text), -9223372036854775808, 'min'::text);
-ERROR:  unexpected object end
-LINE 1: SELECT add(add('{}'::icollection, 9223372036854775807, 'max'...
-                       ^
+                                                     add                                                     
+-------------------------------------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"9223372036854775807": "max", "-9223372036854775808": "min"}}
+(1 row)
+
 -- Test JSON parsing
 SELECT '{"value_type":"text","entries":{"1":"hello","2":"world"}}'::icollection;
-     icollection      
-----------------------
- {1: hello, 2: world}
+                                icollection                                 
+----------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "hello", "2": "world"}}
 (1 row)
 
 SELECT '{"value_type":"int4","entries":{"10":"100","20":"200"}}'::icollection;
-    icollection     
---------------------
- {10: 100, 20: 200}
+                           icollection                            
+------------------------------------------------------------------
+ {"value_type": "integer", "entries": {"10": "100", "20": "200"}}
 (1 row)
 
 SELECT '{"entries":{"1":"default text"}}'::icollection;
-    icollection    
--------------------
- {1: default text}
+                             icollection                             
+---------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "default text"}}
 (1 row)
 
 SELECT '{"value_type":"text","entries":{"1":"value","2":null}}'::icollection;
-     icollection     
----------------------
- {1: value, 2: null}
+                               icollection                               
+-------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "value", "2": null}}
 (1 row)
 
 SELECT count('{"value_type":"text","entries":{"1":"a","2":"b","3":"c"}}'::icollection);
@@ -1277,11 +1343,10 @@ BEGIN
     RAISE NOTICE 'next_key(1): %', next_key(ic, 1);
     RAISE NOTICE 'prev_key(3): %', prev_key(ic, 3);
 END $$;
-ERROR:  unexpected object end
-LINE 1: ic := add(add(add('{}'::icollection, 1, 'first'::text), 2, '...
-                          ^
-QUERY:  ic := add(add(add('{}'::icollection, 1, 'first'::text), 2, 'second'::text), 3, 'third'::text)
-CONTEXT:  PL/pgSQL function inline_code_block line 5 at assignment
+NOTICE:  first_key: 1
+NOTICE:  last_key: 3
+NOTICE:  next_key(1): 2
+NOTICE:  prev_key(3): 2
 -- Test key navigation with NULL returns
 DO $$
 DECLARE
@@ -1292,11 +1357,8 @@ BEGIN
     RAISE NOTICE 'next_key(2) is null: %', next_key(ic, 2) IS NULL;
     RAISE NOTICE 'prev_key(1) is null: %', prev_key(ic, 1) IS NULL;
 END $$;
-ERROR:  unexpected object end
-LINE 1: ic := add(add('{}'::icollection, 1, 'first'::text), 2, 'seco...
-                      ^
-QUERY:  ic := add(add('{}'::icollection, 1, 'first'::text), 2, 'second'::text)
-CONTEXT:  PL/pgSQL function inline_code_block line 5 at assignment
+NOTICE:  next_key(2) is null: t
+NOTICE:  prev_key(1) is null: t
 -- Test typmod syntax
 DO $$
 DECLARE
@@ -1519,7 +1581,7 @@ BEGIN
 END
 $$;
 NOTICE:  Test 22
-NOTICE:  json: "{1: Hello World, 2: Hello All}"
+NOTICE:  json: "{\"value_type\": \"pg_catalog.text\", \"entries\": {\"1\": \"Hello World\", \"2\": \"Hello All\"}}"
 DO $$
 DECLARE
   ic   icollection('int');
@@ -1532,16 +1594,16 @@ BEGIN
 END
 $$;
 NOTICE:  Test 23
-NOTICE:  json: "{1: 42, 2: 84}"
+NOTICE:  json: "{\"value_type\": \"integer\", \"entries\": {\"1\": \"42\", \"2\": \"84\"}}"
 -- Test table storage
 CREATE TABLE icollections_test (c1 int, c2 icollection);
 INSERT INTO icollections_test VALUES (1, add(null::icollection, 1, 'Hello World'));
 INSERT INTO icollections_test VALUES (2, add(null::icollection, 2, 'Hello ALL'));
 SELECT * FROM icollections_test ORDER BY c1;
- c1 |        c2        
-----+------------------
-  1 | {1: Hello World}
-  2 | {2: Hello ALL}
+ c1 |                                 c2                                 
+----+--------------------------------------------------------------------
+  1 | {"value_type": "pg_catalog.text", "entries": {"1": "Hello World"}}
+  2 | {"value_type": "pg_catalog.text", "entries": {"2": "Hello ALL"}}
 (2 rows)
 
 DROP TABLE icollections_test;
@@ -1601,9 +1663,9 @@ ERROR:  unexpected field: entry
 LINE 1: SELECT '{"value_type": "text", "entry": {"1": "Hello World"}...
                ^
 SELECT '{"entries": {"1": "Hello World"}}'::icollection;
-   icollection    
-------------------
- {1: Hello World}
+                            icollection                             
+--------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "Hello World"}}
 (1 row)
 
 SELECT '{"entries": {"1": "Hello World"}, "value_type": "text"}'::icollection;
@@ -1611,16 +1673,16 @@ ERROR:  unexpected field start
 LINE 1: SELECT '{"entries": {"1": "Hello World"}, "value_type": "tex...
                ^
 SELECT '{"value_type": "text", "entries": {"1": "Hello World", "2": 1}}'::icollection;
-      icollection       
-------------------------
- {1: Hello World, 2: 1}
+                                 icollection                                  
+------------------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"1": "Hello World", "2": "1"}}
 (1 row)
 
 -- Test delete via SQL
 SELECT delete('{"value_type": "pg_catalog.text", "entries": {"1": "A", "2": "B", "3": "C"}}'::icollection, 1);
-    delete    
---------------
- {2: B, 3: C}
+                               delete                               
+--------------------------------------------------------------------
+ {"value_type": "pg_catalog.text", "entries": {"2": "B", "3": "C"}}
 (1 row)
 
 -- Test nested icollection
@@ -1662,11 +1724,11 @@ INSERT INTO icollection_persist_test(ic)
 INSERT INTO icollection_persist_test(ic)
   SELECT add(add(null::icollection, 1, 'hello'), 2, null::text);
 SELECT id, ic FROM icollection_persist_test ORDER BY id;
- id |                ic                
-----+----------------------------------
-  1 | {1: 100, 2: 200}
-  2 | {10: 01-01-2026, 20: 12-31-2026}
-  3 | {1: hello, 2: null}
+ id |                                           ic                                           
+----+----------------------------------------------------------------------------------------
+  1 | {"value_type": "bigint", "entries": {"1": "100", "2": "200"}}
+  2 | {"value_type": "pg_catalog.date", "entries": {"10": "01-01-2026", "20": "12-31-2026"}}
+  3 | {"value_type": "pg_catalog.text", "entries": {"1": "hello", "2": null}}
 (3 rows)
 
 SELECT id, count(ic), value_type(ic) FROM icollection_persist_test ORDER BY id;
@@ -1730,7 +1792,7 @@ BEGIN
   ASSERT isnull(ic), 'ic empty isnull';
   ASSERT first_key(ic) IS NULL, 'ic empty first_key';
   ASSERT last_key(ic) IS NULL, 'ic empty last_key';
-  ASSERT value_type(ic) IS NULL, 'ic empty value_type';
+  ASSERT value_type(ic) = 'text'::regtype, 'ic empty value_type';
 
   ic := sort(ic);
   ASSERT count(ic) = 0, 'ic empty sort count';

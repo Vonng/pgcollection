@@ -598,8 +598,8 @@ BEGIN
   -- value_type is NULL until first add
   c := add(NULL::collection, 'tmp', 'x');
   c := delete(c, 'tmp');
-  -- after delete-all, value_type returns NULL (head is NULL)
-  ASSERT value_type(c) IS NULL, 'value_type null after delete-all';
+  -- deleting all entries preserves the known value type
+  ASSERT value_type(c) = 'text'::regtype, 'value_type preserved after delete-all';
   -- re-adding same type works
   c := add(c, 'a', 'hello');
   ASSERT value_type(c) = 'text'::regtype, 'value_type after re-add';
