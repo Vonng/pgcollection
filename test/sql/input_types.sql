@@ -1,0 +1,113 @@
+-- Generic element input must receive typioparam and typmod.
+CREATE SCHEMA input_types;
+CREATE TYPE input_types.enum_value AS ENUM ('ok');
+CREATE TYPE input_types.pair AS (n integer, s text);
+CREATE DOMAIN input_types.positive AS integer CHECK (VALUE > 0);
+CREATE DOMAIN input_types.short_text AS varchar(3);
+CREATE DOMAIN input_types.not_null AS integer NOT NULL;
+CREATE DOMAIN input_types.check_null AS integer CHECK (VALUE IS NOT NULL);
+
+DO $$
+DECLARE
+  c collection;
+  ic icollection;
+  a integer[];
+  p input_types.pair;
+  enum_value input_types.enum_value;
+  ok boolean;
+BEGIN
+  c := '{"value_type":"integer[]","entries":{"1":"{1,NULL,3}"}}';
+  ic := '{"value_type":"integer[]","entries":{"1":"{1,NULL,3}"}}';
+  a := find(c, '1', NULL::integer[]);
+  ASSERT a = ARRAY[1, NULL, 3]::integer[];
+  a := find(ic, 1, NULL::integer[]);
+  ASSERT a = ARRAY[1, NULL, 3]::integer[];
+
+  c := '{"value_type":"input_types.enum_value","entries":{"1":"ok"}}';
+  ic := '{"value_type":"input_types.enum_value","entries":{"1":"ok"}}';
+  enum_value := find(c, '1', NULL::input_types.enum_value);
+  ASSERT enum_value = 'ok';
+  enum_value := find(ic, 1, NULL::input_types.enum_value);
+  ASSERT enum_value = 'ok';
+
+  c := '{"value_type":"input_types.pair","entries":{"1":"(42,hello)"}}';
+  ic := '{"value_type":"input_types.pair","entries":{"1":"(42,hello)"}}';
+  p := find(c, '1', NULL::input_types.pair);
+  ASSERT p.n = 42 AND p.s = 'hello';
+  p := find(ic, 1, NULL::input_types.pair);
+  ASSERT p.n = 42 AND p.s = 'hello';
+
+  c := '{"value_type":"input_types.positive","entries":{"1":"7"}}';
+  ic := '{"value_type":"input_types.positive","entries":{"1":"7"}}';
+  ASSERT find(c, '1', NULL::input_types.positive) = 7;
+  ASSERT find(ic, 1, NULL::input_types.positive) = 7;
+
+  ok := false;
+  BEGIN
+    c := '{"value_type":"input_types.positive","entries":{"1":"-1"}}';
+  EXCEPTION WHEN check_violation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'positive domain must reject invalid input';
+
+  ok := false;
+  BEGIN
+    ic := '{"value_type":"input_types.positive","entries":{"1":"-1"}}';
+  EXCEPTION WHEN check_violation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'positive domain must reject invalid input for icollection';
+
+  ok := false;
+  BEGIN
+    c := '{"value_type":"input_types.not_null","entries":{"1":null}}';
+  EXCEPTION WHEN not_null_violation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'not-null domain must reject NULL';
+
+  ok := false;
+  BEGIN
+    ic := '{"value_type":"input_types.not_null","entries":{"1":null}}';
+  EXCEPTION WHEN not_null_violation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'not-null domain must reject NULL for icollection';
+
+  ok := false;
+  BEGIN
+    c := '{"value_type":"input_types.check_null","entries":{"1":null}}';
+  EXCEPTION WHEN check_violation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'check domain must reject NULL';
+
+  ok := false;
+  BEGIN
+    ic := '{"value_type":"input_types.check_null","entries":{"1":null}}';
+  EXCEPTION WHEN check_violation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'check domain must reject NULL for icollection';
+
+  ok := false;
+  BEGIN
+    c := '{"value_type":"input_types.short_text","entries":{"1":"long"}}';
+  EXCEPTION WHEN string_data_right_truncation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'domain typmod must be enforced';
+
+  ok := false;
+  BEGIN
+    ic := '{"value_type":"input_types.short_text","entries":{"1":"long"}}';
+  EXCEPTION WHEN string_data_right_truncation THEN
+    ok := true;
+  END;
+  ASSERT ok, 'domain typmod must be enforced for icollection';
+END $$;
+
+DROP DOMAIN input_types.positive, input_types.short_text,
+            input_types.not_null, input_types.check_null;
+DROP TYPE input_types.enum_value, input_types.pair;
+DROP SCHEMA input_types;

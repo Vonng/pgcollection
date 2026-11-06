@@ -93,11 +93,10 @@ parse_collection(char *json)
 
 		item->isnull = isnull;
 
-		if (!isnull)
-		{
-			value = OidFunctionCall1(typInput, CStringGetDatum(vstr));
-			item->value = datumCopy(value, colhdr->value_byval, colhdr->value_type_len);
-		}
+		/* Even NULL input must run non-strict input functions (domains). */
+		value = OidInputFunctionCall(typInput, isnull ? NULL : vstr, typIOParam, -1);
+		item->value = isnull ? (Datum) 0 :
+			datumCopy(value, colhdr->value_byval, colhdr->value_type_len);
 
 		HASH_REPLACE(hh, colhdr->head, key[0], strlen(key), item, replaced_item);
 		if (replaced_item)

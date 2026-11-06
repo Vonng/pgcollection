@@ -93,11 +93,10 @@ parse_icollection(char *json)
 		item->key = key;
 		item->isnull = isnull;
 
-		if (!isnull)
-		{
-			value = OidFunctionCall1(typInput, CStringGetDatum(vstr));
-			item->value = datumCopy(value, icolhdr->value_byval, icolhdr->value_type_len);
-		}
+		/* Even NULL input must run non-strict input functions (domains). */
+		value = OidInputFunctionCall(typInput, isnull ? NULL : vstr, typIOParam, -1);
+		item->value = isnull ? (Datum) 0 :
+			datumCopy(value, icolhdr->value_byval, icolhdr->value_type_len);
 
 		ICOLLECTION_HASH_REPLACE(icolhdr->head, key, item, replaced_item);
 		if (replaced_item)
